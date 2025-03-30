@@ -4,6 +4,8 @@ This is a simple game project to understand the basic mechanics of ThreeJS
 
 _My brain was spinning while I was trying to figure it all out, but it was worth it._
 
+Run this game: https://mikelsv.github.io/ThreejsSimpleGame/
+
 ## main.js
 Main game file. Loading engine modules. Loading models. Waiting and starting the game. Keyboard interception. Looping animation.
 
@@ -25,4 +27,4 @@ mglFlashBorder - Flash on screen. Not working yet.
 
 mglAreaRing - Creates a ring around the player.
 
-
+mglGameSpawnClass - Spawn constrol. Areas and units.
