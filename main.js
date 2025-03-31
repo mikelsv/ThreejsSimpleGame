@@ -2,13 +2,15 @@
 import * as THREE from 'three';
 import {STLLoader} from 'three/addons/loaders/STLLoader.js';
 import {GLTFLoader} from  'three/addons/loaders/GLTFLoader.js';
+import {FontLoader} from 'three/addons/loaders/FontLoader.js';
+import {TextGeometry} from 'three/addons/geometries/TextGeometry.js' 
 //import {SkeletonUnits} from 'three/addons/utils/SkeletonUnits.js'
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import Stats from 'three/addons/libs/stats.module.js';
 import * as YUKA from 'yuka';
 
 // msvcore
-import {mglFlashBorder, mglStickObject, mglAreaRing, mglGameSpawnClass, mglModelsLoader} from './msv.threejs.js';
+import {mglLoadingScreen, mglFlashBorder, mglStickObject, mglAreaRing, mglSingleItems, mglGameSpawnClass, mglModelsLoader, mglHealthBar, mglTextControls} from './msv.threejs.js';
 
 // Hero
 let hero;
@@ -18,12 +20,15 @@ let cube;
 let lastTime = 0;
 let gameStarted = 0;
 
+// Loading screen
+var loadingScreen = new mglLoadingScreen();
+
 // Loader
 var mglModels = new mglModelsLoader();
-mglModels.loadModel('pirate_ship', './models/pirate_ship.glb');
+mglModels.setScreen(loadingScreen);
 
 //"Pirate Ship" (https://skfb.ly/6Ez7W) by IoannSergeich is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
-mglModels.loadModel('buoy', './models/buoy.glb');
+mglModels.loadModel('pirate_ship', './models/pirate_ship.glb');
 
 // "Buoy" (https://skfb.ly/6XLpS) by Tyler Jorgensen is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
 mglModels.loadModel('buoy', './models/buoy.glb');
@@ -31,8 +36,24 @@ mglModels.loadModel('buoy', './models/buoy.glb');
 // "Clown fish" (https://skfb.ly/PXsC) by rubykamen is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
 mglModels.loadModel('clown_fish', './models/clown_fish.glb');
 
+// "Sea Mine" (https://skfb.ly/o8RI7) by Bora Özakaltun is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+mglModels.loadModel('sea_mine', './models/sea_mine.glb');
+
+// Font
+mglModels.loadModel('helvetiker_regular', 'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json');
+
+// Single items
+let singleItems = new mglSingleItems();
+const singleItemsType = {
+    UNKNOWN: 0,
+    ENEMY: 1,
+};
+
 // Spawn
-let gameSpawn = new mglGameSpawnClass(mglModels);
+let gameSpawn = new mglGameSpawnClass();
+
+// Text
+let textControls = new mglTextControls();
 
 // Make scene
 const scene = new THREE.Scene();
@@ -43,7 +64,8 @@ camera.position.z = 5; // Set the initial position of the camera
 //camera.position.set(3, 0.15, 10);
 
 // Make render
-const renderer = new THREE.WebGLRenderer({ alpha: true });
+//const renderer = new THREE.WebGLRenderer({ alpha: true });
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('threejs') });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 renderer.setClearColor(0x000000, 1);
@@ -58,7 +80,7 @@ function gameStartTest(){
     }
 
     setTimeout(() => {
-        gameStartTest();        
+        gameStartTest();
     }, 100);
 }
 
@@ -85,8 +107,16 @@ function gameStart(){
         scene.add(hero);
     }
 
+    // Text
+    textControls.init(scene, camera, mglModels.getModel('helvetiker_regular'));    
+
+    // Single Item
+    singleItems.init(scene);
+    
+    gameReStart();
+
     // Spawn
-    gameSpawn.init(scene);    
+    gameSpawn.init(scene);
 
     // Spawn area model
     const buoyModel = mglModels.getModel('buoy');
@@ -138,6 +168,69 @@ function gameStart(){
 
     // Game started
     gameStarted = 1;
+
+    setTimeout(() => textControls.addText("1", hero.position, "Hello world!"), 1000);
+
+    // Hide screen
+    loadingScreen.hideScreen();
+}
+
+function gameReStart(){
+    gamer.gameData.health = gamer.gameData.health_max;
+    gamer.gameData.dead = 0;
+    hero.position.set(0, 0, 0);
+
+    // Enemies //
+    const sea_mine = mglModels.getModel('sea_mine');
+
+    // Death callback
+    let deathCall = function(item, hover, click){
+
+        if(hover)
+            item.mesh.material.color.set(0xffa500); // Change color to orange on hover
+        else
+            item.mesh.material.color.set(0x00ff00); // Reset to original color
+
+        if(click){
+            gameReStart();
+            return true;
+        }
+
+        return false;
+    };
+
+    // Enemies callback
+    let callback = function(item){
+        console.log("Item " + item.id + " action!");
+
+        gamer.gameData.health --;
+        healthBar.changeHealth(gamer.gameData.health, gamer.gameData.health_max);
+
+        if(gamer.gameData.health <= 0){
+            gamer.gameData.health = 0;
+            gamer.gameData.dead = 1;
+            
+            textControls.addText(0, hero.position, "You are dead!", deathCall);
+        }
+
+        redFlashBorder.alert();
+
+        return true;
+    };
+
+    // Add 10 enemies //
+    for (let i = 0; i <= 10; i++) {
+        singleItems.addItem({
+            id: i,
+            group: singleItemsType.ENEMY,
+            pos: singleItems.getRandomPosition(new THREE.Vector3(0, 0, 0), 10),
+            pos2: new THREE.Vector3(0, -2, 0),
+            range: 3,
+            model: sea_mine.scene.clone(),
+            callback: callback
+        });
+    }
+
 }
 
 function addShadowedLight( x, y, z, color, intensity ) {
@@ -184,6 +277,10 @@ gamer.loadGameData();
 let heroArea = new mglAreaRing();
 heroArea.init(scene, gamer.gameData.range);
 
+let healthBar = new mglHealthBar();
+healthBar.init();
+healthBar.changeHealth(gamer.gameData.health, gamer.gameData.health_max);
+
 // Controls
 let stickControl = new mglStickObject();
 stickControl.init(scene);
@@ -203,7 +300,7 @@ function animate(time) {
     const deltaTime = (time - lastTime) / 1000;
     lastTime = time;
     
-    if(hero){
+    if(hero && !gamer.gameData.dead){
         // Movement of the object depending on the keys pressed
         let move = new KiVec2(-keys['ArrowLeft'] - keys['KeyA'] + keys['ArrowRight'] + keys['KeyD'],
             -keys['ArrowUp'] - keys['KeyW'] + keys['ArrowDown'] + keys['KeyS'])        
@@ -235,9 +332,10 @@ function animate(time) {
     }
 
     // Controls
-    redFlashBorder.update(camera, time);
+    redFlashBorder.update(camera, deltaTime);
     stickControl.update(camera, hero, time);
     heroArea.update(camera, hero, time, gamer.gameData.range);
+    singleItems.update(time, hero.position, gamer.gameData.range);
     gameSpawn.update(scene, time, hero.position, gamer.gameData.range);
 
     // Cube
@@ -250,3 +348,15 @@ function animate(time) {
 
 // Let's start the animation
 animate();
+
+
+// Test Area
+function handleClick(event) {
+    console.log("Test click", event);
+
+    textControls.addText("1", hero.position, "Hello world!");
+
+    redFlashBorder.alert();
+}
+
+//document.addEventListener('click', handleClick);

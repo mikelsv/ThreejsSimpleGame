@@ -4,6 +4,11 @@
 const gamer_project_name = "threejs_simple_game";
 
 const gamer_project_vers = [ // New to up
+    ["0.3", "31.03.2025 15:35", `Add mglSingleItems class for sigle units, enemies, items.
+Add enemy mines.
+Add health bar.
+Add death message.
+`],
     ["0.2", "30.03.2025 17:41", `Make github repository
 Redesign of code and removal of unnecessary things
 `],
@@ -21,9 +26,10 @@ Redesign of code and removal of unnecessary things
 
 let gamer = {
     base: {
-        // Base values        
+        // Base values
+        health_max: 5,
         speed: 5,
-        range: 5
+        range: 5,
     },
 
     gameData: {
@@ -36,11 +42,13 @@ let gamer = {
         },
 
         init(){
+            this.health = this.health_max;
             //this.fuel = this.fuel_max;
             //this.lives = this.lives_max;
             //this.state = STATES.LOAD;
 
             //this.shop = {test:123};
+            this.dead = 0;
         }
     },
     
