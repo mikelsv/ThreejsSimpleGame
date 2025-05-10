@@ -1,3 +1,6 @@
+# Project migrated to MyGL Core!
+https://github.com/mikelsv/mglcore - new library for web development
+
 # ThreejsSimpleGame
 
 This is a simple game project to understand the basic mechanics of ThreeJS
